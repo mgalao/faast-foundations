@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import argparse
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -9,8 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def clean_data(country="PT"):
+    """
+    Cleans the raw life expectancy data for a specified country
+    and saves it to a CSV file.
+    """
     raw_file = "life_expectancy/data/eu_life_expectancy_raw.tsv"
-    output_file = "life_expectancy/data/pt_life_expectancy.csv"
+    output_file = f"life_expectancy/data/{country.lower()}_life_expectancy.csv"
 
     # Load data
     df = pd.read_csv(raw_file, sep="\t")
@@ -57,4 +62,12 @@ def clean_data(country="PT"):
 
 
 if __name__ == "__main__":  # pragma: no cover
-    clean_data()
+    parser = argparse.ArgumentParser(description="Clean EU life expectancy data.")
+    parser.add_argument(
+        "--country",
+        type=str,
+        default="PT",
+        help="Country code to filter the data (default: PT)"
+    )
+    args = parser.parse_args()
+    clean_data(country=args.country)
