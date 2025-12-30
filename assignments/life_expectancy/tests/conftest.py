@@ -24,8 +24,12 @@ def run_before_and_after_tests() -> None:
     yield # this is where the testing happens
 
     # Teardown : fill with any logic you want
-    file_path = OUTPUT_DIR / "pt_life_expectancy.csv"
-    file_path.unlink(missing_ok=True)
+    # Remove all CSV files created during tests
+    for file_path in OUTPUT_DIR.glob("*.csv"):
+        try:
+            file_path.unlink()
+        except Exception as e:
+            print(f"Could not delete {file_path}: {e}")
 
 
 @pytest.fixture(scope="session")
