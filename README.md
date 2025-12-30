@@ -1,3 +1,9 @@
+# Life Expectancy Assignment
+
+[![CI](https://github.com/mgalao/faast-foundations/actions/workflows/ci.yml/badge.svg)](https://github.com/mgalao/faast-foundations/actions/workflows/ci.yml)
+
+This project cleans EU life expectancy data and ensures good code quality...
+
 # FAAST Advance Foundations
 
 ![FAAST logo](/images/FAAST_preto.png)
