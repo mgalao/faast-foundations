@@ -2,31 +2,62 @@ import logging
 import argparse
 import pandas as pd
 
+# Set up logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,  # Change to INFO for normal runs, DEBUG for more verbosity
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 
-def clean_data(country="PT"):
+def load_data(raw_file: str = "life_expectancy/data/eu_life_expectancy_raw.tsv") -> pd.DataFrame:
     """
-    Cleans the raw life expectancy data for a specified country
-    and saves it to a CSV file.
-    """
-    raw_file = "life_expectancy/data/eu_life_expectancy_raw.tsv"
-    output_file = f"life_expectancy/data/{country.lower()}_life_expectancy.csv"
+    Load the raw EU life expectancy dataset from a TSV file.
 
-    # Load data
+    Args:
+        raw_file: Path to the raw TSV file.
+
+    Returns:
+        DataFrame containing the raw dataset.
+    """
     df = pd.read_csv(raw_file, sep="\t")
-    logger.debug("\nInitial dataframe:\n%s\n", df.head())
+    logger.debug("Loaded raw data with shape: %s", df.shape)
+    return df
 
-    # Split the composed first column
+
+def split_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Split the first composed column into separate metadata columns:
+    unit, sex, age, region.
+
+    Args:
+        df: Raw DataFrame with the first column containing comma-separated metadata.
+
+    Returns:
+        DataFrame with separate metadata columns.
+    """
+    df = df.copy()
     df[['unit', 'sex', 'age', 'region']] = df.iloc[:, 0].str.split(",", expand=True)
-    logger.debug("\nSplitted first column into multiple columns:\n%s\n", df.head())
+    logger.debug("Split first column into metadata columns: unit, sex, age, region")
+    return df
 
-    # Unpivot
-    year_columns = df.columns[1:-4] # Exclude composed column and new columns
+
+def melt_years(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Reshape the DataFrame from wide to long format, keeping only year columns
+    and the metadata columns (unit, sex, age, region).
+
+    Columns layout after split:
+    [composed_col, 2021, 2020, ..., 1960, unit, sex, age, region]
+    Year columns are all except the first composed column and the last four metadata columns.
+
+    Args:
+        df: DataFrame with separated metadata columns.
+
+    Returns:
+        DataFrame in long format with columns: unit, sex, age, region, year, value.
+    """
+    year_columns = df.columns[1:-4]
     df_long = pd.melt(
         df,
         id_vars=['unit', 'sex', 'age', 'region'],
@@ -34,31 +65,101 @@ def clean_data(country="PT"):
         var_name='year',
         value_name='value'
     )
-    logger.debug("\nUnpivoted date to long format:\n%s\n", df_long.head())
+    logger.debug("Melted year columns into long format with shape: %s", df_long.shape)
+    return df_long
 
-    # Inspect rows for year 2021 before converting value
-    logging.debug("\nRows for 2021 before conversion:\n%s\n", df_long[df_long['year'] == '2021'])
 
-    # Convert types
-    df_long['year'] = df_long['year'].str.strip().astype(int)
-    # Remove any non-numeric characters except the dot (.)
-        # Example:
-        #   '21.7 e' -> '21.7'
-        #   '18.5*'  -> '18.5'
-        #   '20,5'   -> '205'
-    df_long['value'] = df_long['value'].str.strip().str.replace(r'[^0-9.]', '', regex=True)
-    df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
-    df_long = df_long.dropna(subset=['value'])
-    logger.debug("\nConverted year to int, value to float, dropped NaNs:\n%s\n", df_long.head())
-    logger.debug("\nData types of the dataframe:\n%s\n", df_long.dtypes)
+def clean_types(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert 'year' and 'value' columns to numeric types and clean the 'value' column.
 
-    # Filter by country
-    df_country = df_long[df_long['region'] == country].copy()
-    logger.debug("\nFiltered data for %s:\n%s\n", country, df_country.head())
+    - 'year' is stripped and converted to int.
+    - 'value' has non-numeric characters removed (except the dot) and is converted to float.
+    - Rows with NaN in 'value' are dropped.
 
-    # Save cleaned data
-    df_country.to_csv(output_file, index=False)
-    logger.info("\nSaved cleaned data to %s\n", output_file)
+    Example conversions:
+        '21.7 e' -> 21.7
+        '18.5*'  -> 18.5
+        '20,5'   -> 205
+
+    Args:
+        df: DataFrame with 'year' and 'value' columns as strings.
+
+    Returns:
+        DataFrame with numeric 'year' and 'value'.
+    """
+    df = df.copy()
+    df['year'] = df['year'].str.strip().astype(int)
+    df['value'] = df['value'].str.strip().str.replace(r'[^0-9.]', '', regex=True)
+    df['value'] = pd.to_numeric(df['value'], errors='coerce')
+    df = df.dropna(subset=['value'])
+    logger.debug("Converted 'year' to int, cleaned 'value', dropped NaNs")
+    return df
+
+
+def filter_country(df: pd.DataFrame, country: str) -> pd.DataFrame:
+    """
+    Filter the DataFrame to only include rows for the specified country.
+
+    Args:
+        df: Cleaned DataFrame.
+        country: Country code (e.g., 'PT').
+
+    Returns:
+        DataFrame containing only rows for the specified country.
+    """
+    df_country = df[df['region'] == country].copy()
+    logger.debug("Filtered data for country '%s' with shape: %s", country, df_country.shape)
+    return df_country
+
+
+def clean_data(df: pd.DataFrame, country: str = "PT") -> pd.DataFrame:
+    """
+    Orchestrate the cleaning pipeline:
+    - Split metadata columns
+    - Melt year columns
+    - Convert types and clean values
+    - Filter for a specific country
+
+    Args:
+        df: Raw DataFrame.
+        country: Country code to filter by (default 'PT').
+
+    Returns:
+        Cleaned DataFrame for the specified country.
+    """
+    df = split_metadata_columns(df)
+    df = melt_years(df)
+    df = clean_types(df)
+    df = filter_country(df, country)
+    logger.info("Completed cleaning for country: %s", country)
+    return df
+
+
+def save_data(df: pd.DataFrame, country: str = "PT", output_dir: str = "life_expectancy/data") -> None:
+    """
+    Save the cleaned life expectancy data for a country to a CSV file.
+
+    Args:
+        df: Cleaned DataFrame.
+        country: Country code (e.g., 'PT').
+        output_dir: Directory where the CSV will be saved.
+    """
+    output_file = f"{output_dir}/{country.lower()}_life_expectancy.csv"
+    df.to_csv(output_file, index=False)
+    logger.info("Saved cleaned data to %s", output_file)
+
+
+def main(country: str = "PT") -> None:
+    """
+    Load, clean, and save life expectancy data for a given country.
+
+    Args:
+        country: Country code to filter by (default 'PT').
+    """
+    df_raw = load_data()
+    df_clean = clean_data(df_raw, country=country)
+    save_data(df_clean, country=country)
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -70,4 +171,4 @@ if __name__ == "__main__":  # pragma: no cover
         help="Country code to filter the data (default: PT)"
     )
     args = parser.parse_args()
-    clean_data(country=args.country)
+    main(country=args.country)

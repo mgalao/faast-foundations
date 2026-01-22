@@ -1,20 +1,34 @@
 """Tests for the cleaning module"""
 import pytest
 import pandas as pd
-from life_expectancy.cleaning import clean_data
+from pathlib import Path
+
+from life_expectancy.cleaning import load_data, clean_data, save_data
 from . import OUTPUT_DIR
+
 
 @pytest.mark.parametrize("country", ["PT", "ES", "FR"])
 def test_clean_data(pt_life_expectancy_expected, country):
-    """Run the `clean_data` function and compare the output to the expected output"""
-    clean_data(country=country)
+    """
+    Run the cleaning pipeline for different countries.
+    For PT, compare to expected DataFrame.
+    For other countries, just check that the output file is created and non-empty.
+    """
+    # Load, clean, and save data
+    df_raw = load_data()
+    df_cleaned = clean_data(df_raw, country=country)
+    save_data(df_cleaned, country=country, output_dir=OUTPUT_DIR)
 
-    output_file = OUTPUT_DIR / f"{country.lower()}_life_expectancy.csv"
+    # Read back the saved CSV
+    output_file = Path(OUTPUT_DIR) / f"{country.lower()}_life_expectancy.csv"
     df_actual = pd.read_csv(output_file)
 
+    # Validate the results
     if country == "PT":
-        # Only compare for PT as we only have the expected data for it
+        # Compare actual vs expected for PT
         pd.testing.assert_frame_equal(df_actual, pt_life_expectancy_expected)
     else:
-        # Check that the output file is not empty for other countries
+        # For other countries, check the file is not empty
         assert not df_actual.empty
+        assert "year" in df_actual.columns
+        assert "value" in df_actual.columns
