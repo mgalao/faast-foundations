@@ -2,37 +2,27 @@
 import pandas as pd
 import pytest
 
-from . import FIXTURES_DIR, OUTPUT_DIR
+from . import FIXTURES_DIR
 
-
-@pytest.fixture(autouse=True)
-def run_before_and_after_tests() -> None:
-    """Fixture to execute commands before and after a test is run.
-
-    1. Everything you may write before 'yield' will run before the tests
-    2. The command 'yield' marks where tests will happen
-    3. The code after 'yield' will be run after the tests are finished.
-
-    Before you start using your own fixtures, all tests will produce a csv file
-    on the output directory. Since this is bad practise, we are erasing this
-    file to avoid polluting your workspace.
-
-    After refactoring your functions this code will do nothing.
-    """
-    # Setup: fill with any logic you want
-
-    yield # this is where the testing happens
-
-    # Teardown : fill with any logic you want
-    # Remove all CSV files created during tests
-    for file_path in OUTPUT_DIR.glob("*.csv"):
-        try:
-            file_path.unlink()
-        except Exception as e:
-            print(f"Could not delete {file_path}: {e}")
-
+@pytest.fixture(scope="session")
+def eu_life_expectancy_sample() -> pd.DataFrame:
+    """Return the sample input for tests."""
+    return pd.read_csv(
+        FIXTURES_DIR / "eu_life_expectancy_raw_sample.tsv",
+        sep="\t"
+    )
 
 @pytest.fixture(scope="session")
 def pt_life_expectancy_expected() -> pd.DataFrame:
-    """Fixture to load the expected output of the cleaning script"""
+    """Expected output for Portugal (PT)."""
     return pd.read_csv(FIXTURES_DIR / "pt_life_expectancy_expected.csv")
+
+@pytest.fixture(scope="session")
+def es_life_expectancy_expected() -> pd.DataFrame:
+    """Expected output for Spain (ES)."""
+    return pd.read_csv(FIXTURES_DIR / "es_life_expectancy_expected.csv")
+
+@pytest.fixture(scope="session")
+def fr_life_expectancy_expected() -> pd.DataFrame:
+    """Expected output for France (FR)."""
+    return pd.read_csv(FIXTURES_DIR / "fr_life_expectancy_expected.csv")
