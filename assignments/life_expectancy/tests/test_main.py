@@ -1,7 +1,9 @@
 """Tests for the main orchestration function"""
-import pytest
 from unittest.mock import patch
+
 import pandas as pd
+import pytest
+
 from life_expectancy.cleaning import main
 
 @pytest.mark.parametrize("country", ["PT", "ES", "FR"])

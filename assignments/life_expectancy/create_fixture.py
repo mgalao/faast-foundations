@@ -1,5 +1,7 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+
 from life_expectancy.cleaning import clean_data
 
 # Directories

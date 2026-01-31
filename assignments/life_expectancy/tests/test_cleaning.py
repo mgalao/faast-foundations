@@ -92,7 +92,7 @@ def test_clean_types(eu_life_expectancy_sample):
     df = split_metadata_columns(eu_life_expectancy_sample)
     df = melt_years(df)
     df = clean_types(df)
-    
+
     # Check types
     assert df["year"].dtype == int
     assert df["value"].dtype == float
