@@ -11,13 +11,8 @@ def test_load_data_reads_csv():
 
         df = load_data("fake.tsv")
 
-        # Assert read_csv was called once
-        mock_read.assert_called_once()
-
-        # Assert it was called with correct arguments
-        call_args = mock_read.call_args
-        assert call_args[0][0] == "fake.tsv"
-        assert call_args[1]["sep"] == "\t"
+        # Assert read_csv was called once with the correct arguments
+        mock_read.assert_called_once_with("fake.tsv", sep="\t")
 
         # Assert the return value is a DataFrame
         assert isinstance(df, pd.DataFrame)
@@ -31,8 +26,9 @@ def test_load_data_uses_default_path():
         load_data()
 
         # Assert it was called with the default path
-        call_args = mock_read.call_args
-        assert "eu_life_expectancy_raw.tsv" in call_args[0][0]
+        mock_read.assert_called_once_with(
+            "life_expectancy/data/eu_life_expectancy_raw.tsv", sep="\t"
+        )
 
 
 def test_save_data_calls_to_csv_with_correct_args():
@@ -45,13 +41,10 @@ def test_save_data_calls_to_csv_with_correct_args():
     with patch("pandas.DataFrame.to_csv") as mock_to_csv:
         save_data(df, country="PT", output_dir="some/dir")
 
-        # Assert to_csv was called once
-        mock_to_csv.assert_called_once()
-
-        # Assert it was called with the correct arguments
-        call_args = mock_to_csv.call_args
-        assert call_args[0][0] == "some/dir/pt_life_expectancy.csv"
-        assert call_args[1]["index"] is False
+        # Assert to_csv was called once with correct arguments
+        mock_to_csv.assert_called_once_with(
+            "some/dir/pt_life_expectancy.csv", index=False
+        )
 
 
 def test_save_data_uses_correct_filename_for_country():
@@ -65,5 +58,6 @@ def test_save_data_uses_correct_filename_for_country():
         save_data(df, country="ES", output_dir="output")
 
         # Check the filename is correct
-        call_args = mock_to_csv.call_args
-        assert call_args[0][0] == "output/es_life_expectancy.csv"
+        mock_to_csv.assert_called_once_with(
+            "output/es_life_expectancy.csv", index=False
+        )
