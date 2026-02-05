@@ -4,13 +4,15 @@ import pandas as pd
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,  # Change to INFO for normal runs, DEBUG for more verbosity
+    level=logging.INFO, # INFO for normal runs; DEBUG for more verbosity
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 
-def load_data(raw_file: str = "life_expectancy/data/eu_life_expectancy_raw.tsv") -> pd.DataFrame:
+def load_data(
+    raw_file: str = "life_expectancy/data/eu_life_expectancy_raw.tsv"
+) -> pd.DataFrame:
     """
     Load the raw EU life expectancy dataset from a TSV file.
 
@@ -31,14 +33,19 @@ def split_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
     unit, sex, age, region.
 
     Args:
-        df: Raw DataFrame with the first column containing comma-separated metadata.
+        df: Raw DataFrame with the first column
+        containing comma-separated metadata.
 
     Returns:
         DataFrame with separate metadata columns.
     """
     df = df.copy()
-    df[['unit', 'sex', 'age', 'region']] = df.iloc[:, 0].str.split(",", expand=True)
-    logger.debug("Split first column into metadata columns: unit, sex, age, region")
+    df[['unit', 'sex', 'age', 'region']] = (
+        df.iloc[:, 0].str.split(",", expand=True)
+    )
+    logger.debug(
+        "Split first column into metadata columns: unit, sex, age, region"
+    )
     return df
 
 
@@ -49,13 +56,15 @@ def melt_years(df: pd.DataFrame) -> pd.DataFrame:
 
     Columns layout after split:
     [composed_col, 2021, 2020, ..., 1960, unit, sex, age, region]
-    Year columns are all except the first composed column and the last four metadata columns.
+    Year columns are all except the first composed column and
+    the last four metadata columns.
 
     Args:
         df: DataFrame with separated metadata columns.
 
     Returns:
-        DataFrame in long format with columns: unit, sex, age, region, year, value.
+        DataFrame in long format with columns:
+            unit, sex, age, region, year, value.
     """
     year_columns = df.columns[1:-4]
     df_long = pd.melt(
@@ -65,16 +74,20 @@ def melt_years(df: pd.DataFrame) -> pd.DataFrame:
         var_name='year',
         value_name='value'
     )
-    logger.debug("Melted year columns into long format with shape: %s", df_long.shape)
+    logger.debug(
+        "Melted year columns into long format with shape: %s", df_long.shape
+    )
     return df_long
 
 
 def clean_types(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Convert 'year' and 'value' columns to numeric types and clean the 'value' column.
+    Convert 'year' and 'value' columns to numeric types
+    and clean the 'value' column.
 
     - 'year' is stripped and converted to int.
-    - 'value' has non-numeric characters removed (except the dot) and is converted to float.
+    - 'value' has non-numeric characters removed (except the dot)
+        and is converted to float.
     - Rows with NaN in 'value' are dropped.
 
     Example conversions:
@@ -90,7 +103,9 @@ def clean_types(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     df['year'] = df['year'].str.strip().astype(int)
-    df['value'] = df['value'].str.strip().str.replace(r'[^0-9.]', '', regex=True)
+    df['value'] = df['value'].astype(str).str.strip().str.replace(
+        r'[^0-9.]', '', regex=True
+    )
     df['value'] = pd.to_numeric(df['value'], errors='coerce')
     df = df.dropna(subset=['value'])
     logger.debug("Converted 'year' to int, cleaned 'value', dropped NaNs")
@@ -109,7 +124,10 @@ def filter_country(df: pd.DataFrame, country: str) -> pd.DataFrame:
         DataFrame containing only rows for the specified country.
     """
     df_country = df[df['region'] == country].copy()
-    logger.debug("Filtered data for country '%s' with shape: %s", country, df_country.shape)
+    logger.debug(
+        "Filtered data for country '%s' with shape: %s",
+        country, df_country.shape
+    )
     return df_country
 
 
@@ -132,11 +150,16 @@ def clean_data(df: pd.DataFrame, country: str = "PT") -> pd.DataFrame:
     df = melt_years(df)
     df = clean_types(df)
     df = filter_country(df, country)
+    df = df.reset_index(drop=True)
     logger.info("Completed cleaning for country: %s", country)
     return df
 
 
-def save_data(df: pd.DataFrame, country: str = "PT", output_dir: str = "life_expectancy/data") -> None:
+def save_data(
+    df: pd.DataFrame,
+    country: str = "PT",
+    output_dir: str = "life_expectancy/data"
+) -> None:
     """
     Save the cleaned life expectancy data for a country to a CSV file.
 
@@ -163,7 +186,9 @@ def main(country: str = "PT") -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    parser = argparse.ArgumentParser(description="Clean EU life expectancy data.")
+    parser = argparse.ArgumentParser(
+        description="Clean EU life expectancy data."
+    )
     parser.add_argument(
         "--country",
         type=str,
