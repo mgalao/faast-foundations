@@ -1,6 +1,6 @@
 from enum import Enum
 
-class Region(Enum):
+class Region(str, Enum):
     """Enum representing EU region codes."""
     AL = "AL"
     AM = "AM"

@@ -125,10 +125,10 @@ def filter_country(df: pd.DataFrame, country: Region) -> pd.DataFrame:
     Returns:
         DataFrame containing only rows for the specified country.
     """
-    df_country = df[df['region'] == country.name].copy()
+    df_country = df[df['region'] == country].copy()
     logger.debug(
         "Filtered data for country '%s' with shape: %s",
-        country.name, df_country.shape
+        country, df_country.shape
     )
     return df_country
 
@@ -153,7 +153,7 @@ def clean_data(df: pd.DataFrame, country: Region = Region.PT) -> pd.DataFrame:
     df = clean_types(df)
     df = filter_country(df, country)
     df = df.reset_index(drop=True)
-    logger.info("Completed cleaning for country: %s", country.name)
+    logger.info("Completed cleaning for country: %s", country)
     return df
 
 
@@ -170,7 +170,7 @@ def save_data(
         country: Country region (e.g., Region.PT).
         output_dir: Directory where the CSV will be saved.
     """
-    output_file = f"{output_dir}/{country.name.lower()}_life_expectancy.csv"
+    output_file = f"{output_dir}/{country.lower()}_life_expectancy.csv"
     df.to_csv(output_file, index=False)
     logger.info("Saved cleaned data to %s", output_file)
 
@@ -193,9 +193,10 @@ if __name__ == "__main__":  # pragma: no cover
     )
     parser.add_argument(
         "--country",
-        type=str,
-        default="PT",
+        type=lambda c: Region[c],
+        choices=list(Region),
+        default=Region.PT,
         help="Country code to filter the data (default: PT)"
     )
     args = parser.parse_args()
-    main(country=Region[args.country])
+    main(country=args.country)
