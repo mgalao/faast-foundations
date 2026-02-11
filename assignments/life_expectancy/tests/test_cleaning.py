@@ -1,6 +1,7 @@
 """Tests for the cleaning module"""
 import pytest
 import pandas as pd
+from life_expectancy.regions import Region
 from life_expectancy.cleaning import (
     clean_data
     , split_metadata_columns
@@ -12,9 +13,9 @@ from life_expectancy.cleaning import (
 @pytest.mark.parametrize(
     "country, expected_fixture",
     [
-        ("PT", "pt_life_expectancy_expected"),
-        ("ES", "es_life_expectancy_expected"),
-        ("FR", "fr_life_expectancy_expected"),
+        (Region.PT, "pt_life_expectancy_expected"),
+        (Region.ES, "es_life_expectancy_expected"),
+        (Region.FR, "fr_life_expectancy_expected"),
     ],
 )
 def test_clean_data(
@@ -111,8 +112,34 @@ def test_filter_country():
         "value": [80.5, 82.0, 81.0, 83.0]
     })
 
-    df_pt = filter_country(df_multi, "PT")
+    df_pt = filter_country(df_multi, Region.PT)
 
     # Check that only PT rows are returned
     assert len(df_pt) == 2
     assert all(df_pt["region"] == "PT")
+
+
+def test_region_countries():
+    """
+    Test that Region.countries() returns only individual countries,
+    excluding aggregated groups.
+    """
+    countries = Region.countries()
+    
+    # Check that it returns a list of Region instances
+    assert isinstance(countries, list)
+    assert all(isinstance(r, Region) for r in countries)
+     
+    country_names = [r.name for r in countries]
+
+    # Check that aggregated regions are excluded
+    assert "EU28" not in country_names
+    assert "EA19" not in country_names
+    assert "EFTA" not in country_names
+    assert "DE_TOT" not in country_names
+
+    # Check that individual countries are included
+    assert "PT" in country_names
+    assert "ES" in country_names
+    assert "FR" in country_names
+    assert "DE" in country_names

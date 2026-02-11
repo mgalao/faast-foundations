@@ -2,6 +2,8 @@ import logging
 import argparse
 import pandas as pd
 
+from life_expectancy.regions import Region
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO, # INFO for normal runs; DEBUG for more verbosity
@@ -112,26 +114,26 @@ def clean_types(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def filter_country(df: pd.DataFrame, country: str) -> pd.DataFrame:
+def filter_country(df: pd.DataFrame, country: Region) -> pd.DataFrame:
     """
     Filter the DataFrame to only include rows for the specified country.
 
     Args:
         df: Cleaned DataFrame.
-        country: Country code (e.g., 'PT').
+        country: Country region (e.g., Region.PT).
 
     Returns:
         DataFrame containing only rows for the specified country.
     """
-    df_country = df[df['region'] == country].copy()
+    df_country = df[df['region'] == country.name].copy()
     logger.debug(
         "Filtered data for country '%s' with shape: %s",
-        country, df_country.shape
+        country.name, df_country.shape
     )
     return df_country
 
 
-def clean_data(df: pd.DataFrame, country: str = "PT") -> pd.DataFrame:
+def clean_data(df: pd.DataFrame, country: Region = Region.PT) -> pd.DataFrame:
     """
     Orchestrate the cleaning pipeline:
     - Split metadata columns
@@ -141,7 +143,7 @@ def clean_data(df: pd.DataFrame, country: str = "PT") -> pd.DataFrame:
 
     Args:
         df: Raw DataFrame.
-        country: Country code to filter by (default 'PT').
+        country: Country region to filter by (default Region.PT).
 
     Returns:
         Cleaned DataFrame for the specified country.
@@ -151,13 +153,13 @@ def clean_data(df: pd.DataFrame, country: str = "PT") -> pd.DataFrame:
     df = clean_types(df)
     df = filter_country(df, country)
     df = df.reset_index(drop=True)
-    logger.info("Completed cleaning for country: %s", country)
+    logger.info("Completed cleaning for country: %s", country.name)
     return df
 
 
 def save_data(
     df: pd.DataFrame,
-    country: str = "PT",
+    country: Region = Region.PT,
     output_dir: str = "life_expectancy/data"
 ) -> None:
     """
@@ -165,20 +167,20 @@ def save_data(
 
     Args:
         df: Cleaned DataFrame.
-        country: Country code (e.g., 'PT').
+        country: Country region (e.g., Region.PT).
         output_dir: Directory where the CSV will be saved.
     """
-    output_file = f"{output_dir}/{country.lower()}_life_expectancy.csv"
+    output_file = f"{output_dir}/{country.name.lower()}_life_expectancy.csv"
     df.to_csv(output_file, index=False)
     logger.info("Saved cleaned data to %s", output_file)
 
 
-def main(country: str = "PT") -> None:
+def main(country: Region = Region.PT) -> None:
     """
     Load, clean, and save life expectancy data for a given country.
 
     Args:
-        country: Country code to filter by (default 'PT').
+        country: Country region to filter by (default Region.PT).
     """
     df_raw = load_data()
     df_clean = clean_data(df_raw, country=country)
@@ -196,4 +198,4 @@ if __name__ == "__main__":  # pragma: no cover
         help="Country code to filter the data (default: PT)"
     )
     args = parser.parse_args()
-    main(country=args.country)
+    main(country=Region[args.country])
