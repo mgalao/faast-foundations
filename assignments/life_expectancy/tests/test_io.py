@@ -1,6 +1,7 @@
 """Tests for I/O operations (load_data and save_data)"""
 from unittest.mock import patch
 import pandas as pd
+from life_expectancy.regions import Region
 from life_expectancy.cleaning import save_data, load_data
 
 
@@ -39,7 +40,7 @@ def test_save_data_calls_to_csv_with_correct_args():
     df = pd.DataFrame({"a": [1, 2]})
 
     with patch("pandas.DataFrame.to_csv") as mock_to_csv:
-        save_data(df, country="PT", output_dir="some/dir")
+        save_data(df, country=Region.PT, output_dir="some/dir")
 
         # Assert to_csv was called once with correct arguments
         mock_to_csv.assert_called_once_with(
@@ -55,7 +56,7 @@ def test_save_data_uses_correct_filename_for_country():
     df = pd.DataFrame({"a": [1, 2]})
 
     with patch("pandas.DataFrame.to_csv") as mock_to_csv:
-        save_data(df, country="ES", output_dir="output")
+        save_data(df, country=Region.ES, output_dir="output")
 
         # Check the filename is correct
         mock_to_csv.assert_called_once_with(

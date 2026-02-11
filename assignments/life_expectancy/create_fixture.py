@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from life_expectancy.regions import Region
 from life_expectancy.cleaning import clean_data
 
 # Directories
@@ -25,10 +26,10 @@ sample_file = FIXTURES_DIR / "eu_life_expectancy_raw_sample.tsv"
 df_sample.to_csv(sample_file, sep="\t", index=False)
 
 # Generate expected cleaned CSV for each country
-for country in ["PT", "ES", "FR"]:
+for country in [Region.PT, Region.ES, Region.FR]:
     df_expected = clean_data(df_sample, country=country)
     expected_file = (
-        FIXTURES_DIR / f"{country.lower()}_life_expectancy_expected.csv"
+        FIXTURES_DIR / f"{country.name.lower()}_life_expectancy_expected.csv"
     )
     df_expected.to_csv(expected_file, index=False)
     
