@@ -125,7 +125,7 @@ def filter_country(df: pd.DataFrame, country: Region) -> pd.DataFrame:
     Returns:
         DataFrame containing only rows for the specified country.
     """
-    df_country = df[df['region'] == country].copy()
+    df_country = df[df['region'] == country.value].copy()
     logger.debug(
         "Filtered data for country '%s' with shape: %s",
         country, df_country.shape
