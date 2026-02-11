@@ -125,11 +125,11 @@ def test_region_countries():
     excluding aggregated groups.
     """
     countries = Region.countries()
-    
+
     # Check that it returns a list of Region instances
     assert isinstance(countries, list)
     assert all(isinstance(r, Region) for r in countries)
-     
+
     country_names = [r.name for r in countries]
 
     # Check that aggregated regions are excluded

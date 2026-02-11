@@ -1,6 +1,7 @@
 from enum import Enum
 
 class Region(Enum):
+    """Enum representing EU region codes."""
     AL = "AL"
     AM = "AM"
     AT = "AT"
@@ -57,7 +58,7 @@ class Region(Enum):
     UA = "UA"
     UK = "UK"
     XK = "XK"
-    
+
     @classmethod
     def countries(cls) -> list["Region"]:
         """
