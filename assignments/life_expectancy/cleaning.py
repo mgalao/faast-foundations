@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 
 from life_expectancy.regions import Region
+from life_expectancy.data_loaders import get_data_loader
 
 # Set up logging
 logging.basicConfig(
@@ -16,15 +17,17 @@ def load_data(
     raw_file: str = "life_expectancy/data/eu_life_expectancy_raw.tsv"
 ) -> pd.DataFrame:
     """
-    Load the raw EU life expectancy dataset from a TSV file.
+    Load the raw EU life expectancy dataset using the appropriate strategy
+    based on file format (TSV, JSON, etc.).
 
     Args:
-        raw_file: Path to the raw TSV file.
+        raw_file: Path to the raw data file.
 
     Returns:
         DataFrame containing the raw dataset.
     """
-    df = pd.read_csv(raw_file, sep="\t")
+    loader = get_data_loader(raw_file)
+    df = loader.load(raw_file)
     logger.debug("Loaded raw data with shape: %s", df.shape)
     return df
 
@@ -87,28 +90,43 @@ def clean_types(df: pd.DataFrame) -> pd.DataFrame:
     Convert 'year' and 'value' columns to numeric types
     and clean the 'value' column.
 
-    - 'year' is stripped and converted to int.
-    - 'value' has non-numeric characters removed (except the dot)
-        and is converted to float.
+    - 'year' is converted to int (if not already).
+    - 'value' is converted to float, with non-numeric characters removed
+      (except the dot) if it's a string.
     - Rows with NaN in 'value' are dropped.
 
-    Example conversions:
+    Example conversions for string values:
         '21.7 e' -> 21.7
         '18.5*'  -> 18.5
         '20,5'   -> 205
 
     Args:
-        df: DataFrame with 'year' and 'value' columns as strings.
+        df: DataFrame with 'year' and 'value' columns.
 
     Returns:
         DataFrame with numeric 'year' and 'value'.
     """
     df = df.copy()
-    df['year'] = df['year'].str.strip().astype(int)
-    df['value'] = df['value'].astype(str).str.strip().str.replace(
-        r'[^0-9.]', '', regex=True
-    )
-    df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
+    # Handle 'year' column - may already be int (JSON) or string (TSV)
+    if df['year'].dtype == object:
+        # TSV format: year is a string, needs stripping and conversion
+        df['year'] = df['year'].str.strip().astype(int)
+    else:
+        # JSON format: year is already numeric, just ensure it's int
+        df['year'] = df['year'].astype(int)
+
+    # Handle 'value' column - may already be numeric (JSON) or string (TSV)
+    if df['value'].dtype == object:
+        # TSV format: value is a string, needs cleaning
+        df['value'] = df['value'].astype(str).str.strip().str.replace(
+            r'[^0-9.]', '', regex=True
+        )
+        df['value'] = pd.to_numeric(df['value'], errors='coerce')
+    else:
+        # JSON format: value is already numeric
+        df['value'] = pd.to_numeric(df['value'], errors='coerce')
+
     df = df.dropna(subset=['value'])
     logger.debug("Converted 'year' to int, cleaned 'value', dropped NaNs")
     return df
@@ -136,10 +154,11 @@ def filter_country(df: pd.DataFrame, country: Region) -> pd.DataFrame:
 def clean_data(df: pd.DataFrame, country: Region = Region.PT) -> pd.DataFrame:
     """
     Orchestrate the cleaning pipeline:
-    - Split metadata columns
-    - Melt year columns
-    - Convert types and clean values
-    - Filter for a specific country
+    - For TSV format: Split metadata columns, melt year columns
+    - For JSON format: Data is already in long format
+    - For both: Convert types, clean values, and filter for a specific country
+
+    The function auto-detects the format based on the DataFrame structure.
 
     Args:
         df: Raw DataFrame.
@@ -148,8 +167,21 @@ def clean_data(df: pd.DataFrame, country: Region = Region.PT) -> pd.DataFrame:
     Returns:
         Cleaned DataFrame for the specified country.
     """
-    df = split_metadata_columns(df)
-    df = melt_years(df)
+    # Check if data is already in long format (from JSON)
+    # JSON data will have 'region', 'year', 'value' columns after loading
+    is_long_format = all(
+        col in df.columns for col in ['unit', 'sex', 'age', 'region', 'year', 'value']
+    )
+
+    if is_long_format:
+        # JSON data: already in long format, just clean and filter
+        logger.debug("Data is already in long format (JSON)")
+    else:
+        # TSV data: needs full transformation pipeline
+        logger.debug("Data is in wide format (TSV), applying full pipeline")
+        df = split_metadata_columns(df)
+        df = melt_years(df)
+        
     df = clean_types(df)
     df = filter_country(df, country)
     df = df.reset_index(drop=True)
@@ -175,14 +207,18 @@ def save_data(
     logger.info("Saved cleaned data to %s", output_file)
 
 
-def main(country: Region = Region.PT) -> None:
+def main(
+    country: Region = Region.PT,
+    input_file: str = "life_expectancy/data/eu_life_expectancy_raw.tsv"
+) -> None:
     """
     Load, clean, and save life expectancy data for a given country.
 
     Args:
         country: Country region to filter by (default Region.PT).
+        input_file: Path to the input data file (default TSV file).
     """
-    df_raw = load_data()
+    df_raw = load_data(input_file)
     df_clean = clean_data(df_raw, country=country)
     save_data(df_clean, country=country)
 
@@ -198,5 +234,11 @@ if __name__ == "__main__":  # pragma: no cover
         default=Region.PT,
         help="Country code to filter the data (default: PT)"
     )
+    parser.add_argument(
+        "--input-file",
+        type=str,
+        default="life_expectancy/data/eu_life_expectancy_raw.tsv",
+        help="Path to the input data file"
+    )
     args = parser.parse_args()
-    main(country=args.country)
+    main(country=args.country, input_file=args.input_file)
