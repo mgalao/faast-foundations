@@ -1,3 +1,4 @@
+"""Module defining region codes for life expectancy data."""
 from enum import Enum
 
 class Region(str, Enum):

@@ -151,33 +151,33 @@ def test_load_data_json():
     """Test that load_data can load JSON files using the Strategy pattern."""
     json_file = str(OUTPUT_DIR / "eurostat_life_expect.json")
     df = load_data(json_file)
-    
+
     # Check that data was loaded
     assert isinstance(df, pd.DataFrame)
     assert not df.empty
-    
+
     # Check that columns were standardized
     assert 'region' in df.columns
     assert 'value' in df.columns
     assert 'year' in df.columns
-    
+
 
 def test_clean_data_json():
     """Test that clean_data works with JSON format data."""
     json_file = str(OUTPUT_DIR / "eurostat_life_expect.json")
     df_raw = load_data(json_file)
-    
+
     # Clean for Portugal
     df_cleaned = clean_data(df_raw, country=Region.PT)
-    
+
     # Check that data was filtered correctly
     assert not df_cleaned.empty
     assert all(df_cleaned['region'] == Region.PT.value)
-    
+
     # Check that required columns are present
     expected_columns = {'unit', 'sex', 'age', 'region', 'year', 'value'}
     assert set(df_cleaned.columns) == expected_columns
-    
+
     # Check that year is int and value is float
     assert df_cleaned['year'].dtype == 'int64'
     assert df_cleaned['value'].dtype == 'float64'

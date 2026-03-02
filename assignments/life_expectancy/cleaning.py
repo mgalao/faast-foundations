@@ -1,3 +1,4 @@
+"""Module for cleaning and transforming life expectancy data."""
 import logging
 import argparse
 import pandas as pd
@@ -181,7 +182,7 @@ def clean_data(df: pd.DataFrame, country: Region = Region.PT) -> pd.DataFrame:
         logger.debug("Data is in wide format (TSV), applying full pipeline")
         df = split_metadata_columns(df)
         df = melt_years(df)
-        
+
     df = clean_types(df)
     df = filter_country(df, country)
     df = df.reset_index(drop=True)
