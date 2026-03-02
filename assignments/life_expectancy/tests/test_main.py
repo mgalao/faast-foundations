@@ -4,9 +4,10 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from life_expectancy.regions import Region
 from life_expectancy.cleaning import main
 
-@pytest.mark.parametrize("country", ["PT", "ES", "FR"])
+@pytest.mark.parametrize("country", [Region.PT, Region.ES, Region.FR])
 def test_main_orchestrates_pipeline(country):
     """
     Test that main function orchestrates
