@@ -1,3 +1,4 @@
+"""Script to create test fixtures from sample data."""
 from pathlib import Path
 
 import pandas as pd
@@ -32,4 +33,3 @@ for country in [Region.PT, Region.ES, Region.FR]:
         FIXTURES_DIR / f"{country.name.lower()}_life_expectancy_expected.csv"
     )
     df_expected.to_csv(expected_file, index=False)
-    
